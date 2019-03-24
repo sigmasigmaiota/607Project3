@@ -56,13 +56,17 @@ Who are companies hiring for data scientist positions?
 By seeing data science skills from the innovator, academic, and employer perspectives, we can uncover the skills that overlap every perspective to create the ideal profile of the modern data scientist.  
 
 
-##Motivation:  
+##Motivation  
 
 
 Initially, one might consider asking a professor, or a data scientist in the field, or a potential employer to answer these questions. While each may have valuable insight about which skills are the most valuable, their perspectives are ultimately anecdotal evidence. As aspiring data scientists ourselves, anecdotal evidence is not rigorous enough to make a data-informed decision. Developing a survey and finding a representative sample to answer this question is expensive and tedious. Why do something by hand, when a computer can do it faster and cheaper? In order to find the most valued data science skills, we turn to the internet and use webscraping tools to find our answers.  
 
 
 Ultimately, we chose to use webscraping to answer this question because it is an efficient way of gathering data from the web when structured tables and toy datasets are unavailable. Given the vast wealth of information available for free on the internet, there are plenty of places we can look to answer this question.  
+
+
+For this project, we will be scraping job posting sites, data science blogs, and university catalogs to provide a full range of data across multiple sources. After scraping the data, we will compare the datasets to each other to see which skills are valued by each source.  
+
 
 #Approach (Methods)  
 
@@ -970,7 +974,7 @@ scrape_pages <- function(x){
   tmp <- htmlParse(getURI(x))
   tmp <- xpathSApply(tmp, '//div/p', xmlValue)
   return(tmp)
-}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}, error=function(e){})
 }
 textblock <- sapply(clean_text, scrape_pages)
 
@@ -1324,7 +1328,7 @@ wordcloud(words = df9$word, freq = df9$frequency, min.freq = 1,
 A google search was conducted and a root url (https://www.google.com/search?q=data%20science%20course%20catalog&start=) waas used to obtain ten pages of search results; in order to proceed, ten links were generated iteratively using a loop which appended a value to the end of the root link in multiples of ten.  The resulting list of urls--each representing a different online course catalog--resisted scraping using the previous functions, so five pages were selected and scanned individually. The result is show in the code blocks and word clouds below. The google results will change so the urls were entered individually.  
 
 
-```{r message=FALSE,warning=FALSE}
+```{r message=FALSE,warning=FALSE,results="hide"}
 
 urllist <- list()
 for(i in 1:10){
@@ -1372,7 +1376,12 @@ clean_text<-as.data.frame(gsub('&.*','',clean_text),stringsAsFactors = FALSE)
 colnames(clean_text)[1]<-"url"
 
 urlsToScrape<-clean_text
+```
 
+Now that we have a list of urls, let's scrape each of them.  
+
+
+```{r message=FALSE,warning=FALSE}
 #grab url from 2nd row and scrape; Iowa State.
 url_base<-"http://catalog.iastate.edu/collegeofliberalartsandsciences/datascience/"
 
@@ -1677,6 +1686,20 @@ write.csv(catalog_words,"catalog_words.csv")
 
 #Conclusions  
 
+##Blogs  
+
+
+<b>"Machine learning" is the most popular term across the blogs we analyzed.  Not only is it the most popular term in 4/5 blogs, but it doesn't show the variability that other topics show.  
+
+
+Perhaps surprisingly the presence of the term "quantitative" brought up the rear in most of the blogs.  While of course almost everything in data science is "Quantitative", it is a curious quirk of the data that may beg further inquiry.  
+
+
+Also showing as a consistent front runner in our sectors analysis is "Disease", showing that the literature around data science and epidemiology is quite prevalent, and may make for a very lucrative career for aspiring data scientists.</b>  
+
+
+##Indeed vs. catalogs
+
 Data were downloaded from the cloud and compiled. Users were setup via a free trial on Google Cloud as recommended in the course materials.   
 
 ```{r warning=FALSE,message=FALSE}
@@ -1706,106 +1729,18 @@ getSqlConnection2 <- function() {
   return(con)
 }
 
-getSqlConnection3 <- function() {
-  con <-dbConnect(RMySQL::MySQL(),
-                  username = 'achan',#other ids set up are 'achan' and 'mhayes'
-                  password = 'ac.mh.sj.607',#we all can use the same password
-                  host = '35.202.129.190',#this is the IP address of the cloud instance
-                  dbname = 'blog_topics')
-  return(con)
-}
-
 connection <- getSqlConnection()
 reqst <- dbSendQuery(connection,"select * from catalog_words")
 catalogdata <- dbFetch(reqst)
 
 connection2 <- getSqlConnection2()
-reqst2 <- dbSendQuery(connection2,"select * from bigram_counts")
-bigramdata <- dbFetch(reqst2)
-reqst3 <- dbSendQuery(connection2,"select * from trigram_counts")
-trigramdata <- dbFetch(reqst3)
 reqst4 <- dbSendQuery(connection2,"select * from word_counts")
 wordcountsdata <- dbFetch(reqst4)
 
-connection3 <- getSqlConnection3()
-dscdata <- dbGetQuery(connection3,"select * from blog_topics.dsc_data")
-
-dscsecdata <- dbGetQuery(connection3,"select * from blog_topics.dsc_sec_data")
-
-kgldata <- dbGetQuery(connection3,"select * from blog_topics.kgl_data")
-
-kglsecdata <- dbGetQuery(connection3,"select * from blog_topics.kgl_sec_data")
-
-sdcdata <- dbGetQuery(connection3,"select * from blog_topics.sdc_data")
-
-sdcsecdata <- dbGetQuery(connection3,"select * from blog_topics.sdc_sec_data")
-
-ssdata <- dbGetQuery(connection3,"select * from blog_topics.ss_data")
-
-sssecdata <- dbGetQuery(connection3,"select * from blog_topics.ss_sec_data")
-
-wbgdata <- dbGetQuery(connection3,"select * from blog_topics.wbg_data")
-
-wbgsecdata <- dbGetQuery(connection3,"select * from blog_topics.wgb_sec_data")
 ```
 
-Data from blogs is tidied and transformed; two columns, word and frequency are created.    
+Data are tidied for comparison.  
 
-```{r message=FALSE,warning=FALSE}
-
-wrdfreq<-rbind(dscdata[5:13],wbgdata[4:12],ssdata[4:12],sdcdata[4:12],kgldata[4:12])
-
-wrdfreq<-as.data.frame(wrdfreq)
-
-wrdfreq$data<-wrdfreq$big_data
-colnames(wrdfreq)[1]<-"big"
-
-wrdfreq$intelligence<-wrdfreq$business_intelligence
-colnames(wrdfreq)[2]<-"business"
-
-wrdfreq$mining<-wrdfreq$data_mining
-colnames(wrdfreq)[3]<-"data2"
-
-wrdfreq$learning<-wrdfreq$deep_learning
-colnames(wrdfreq)[4]<-"deep"
-
-wrdfreq$learning2<-wrdfreq$machine_learning
-colnames(wrdfreq)[6]<-"machine"
-
-wrdfreq$modeling<-wrdfreq$predictive_modeling
-colnames(wrdfreq)[8]<-"predictive"
-
-wrdfreq<-sapply(wrdfreq,as.numeric)
-
-word.blogs<-colnames(wrdfreq)
-freq.blogs<-colSums(wrdfreq,na.rm=TRUE)
-
-blogcount<-cbind(word.blogs,freq.blogs)
-rownames(blogcount)<-NULL
-
-blogcount<-as.data.frame(gsub('2','',blogcount),stringsAsFactors = FALSE)
-blogcount$freq.blogs<-as.numeric(blogcount$freq.blogs)
-
-blogcount<-aggregate(blogcount$freq.blogs, by=list(word=blogcount$word.blogs), FUN=sum)
-colnames(blogcount)[2]<-"frequency"
-
-#omit "big" and "data""
-blogcount<-blogcount[which(blogcount$word!='big'&blogcount$word!='data'),]
-
-blogcount$proportion<-(blogcount$frequency/(sum(blogcount$frequency)))
-
-library(wordcloud)
-
-set.seed(1970)
-wordcloud(words = blogcount$word, freq = blogcount$frequency, min.freq = 1,
-          max.words=200, random.order=FALSE, rot.per=0.2, 
-          colors=brewer.pal(8, "Dark2"))
-
-
-
-```  
-
-A word cloud is created from the resulting compiled blog word frequency data.    
 
 ```{r message=FALSE,warning=FALSE}
 
@@ -1816,14 +1751,9 @@ wordcountsdata<-wordcountsdata[which(wordcountsdata$word!='big'&wordcountsdata$w
 
 wordcountsdata$proportion<-(wordcountsdata$frequency/(sum(wordcountsdata$frequency)))
 
-set.seed(1969)
-wordcloud(words = wordcountsdata$word, freq = wordcountsdata$frequency, min.freq = 1,
-          max.words=200, random.order=FALSE, rot.per=0.2, 
-          colors=brewer.pal(8, "Dark2"))
-
 ```  
 
-A comparison is drawn between data collected from blogs,course catalogs and from job sites.  
+A comparison is drawn between data collected from course catalogs and job sites.  
 
 ```{r message=FALSE,warning=FALSE}
 
@@ -1834,29 +1764,28 @@ catalogdata$proportion<-(catalogdata$frequency/(sum(catalogdata$frequency)))
 
 wordcountsdata$genre<-"jobs"
 catalogdata$genre<-"catalogs"
-blogcount$genre<-"blogs"
 
-masterlist<-rbind(wordcountsdata,blogcount,catalogdata)
+masterlist<-rbind(wordcountsdata,catalogdata)
 
 library(scales)
 library(ggplot2)
 
-# expect a warning about rows with missing values being removed
+#the following plot code is adapted from https://www.tidytextmining.com/tidytext.html
 ggplot(masterlist, aes(x = proportion, y = proportion, color = proportion)) +
   geom_jitter(alpha = 0.2, size = 2.5, width = 0.3, height = 0.3) +
-  geom_text(aes(label = word),alpha=1, check_overlap = TRUE, vjust = 1.5, hjust= .6) +
-  scale_x_log10(labels = percent_format()) +
-  scale_y_log10(labels = percent_format()) +
-  scale_color_gradient(limits = c(0, 0.3), low = "darkslategray4", high = "blue") +
-  facet_wrap(~genre, ncol = 3) +
+  geom_text(aes(label = word),alpha=1, check_overlap = TRUE, vjust = 1.5, hjust= .8) +
+  scale_x_log10(labels = NULL) +
+  scale_y_log10(labels = NULL) +
+  scale_color_gradient(limits = c(0, 0.08), low = "lightblue", high = "darkblue") +
+  facet_wrap(~genre, ncol = 2) +
   theme(legend.position="none",panel.background = element_blank()) +
   labs(y = "proportion", x = NULL)
 
 ```  
 
-The three plots above illustrate the relative frequencies of single words yielded by our scraping. Proportions for each word were calculated by dividing the frequency of each word in each medium by the total number of selected words detected; the log of this number forms the scale of the x and y axes.  
+The plots above illustrate the relative frequencies of single words yielded by our scraping. Proportions for each word were calculated by dividing the frequency of each word in each medium by the total number of selected words detected; the log of this number forms the scale of the x and y axes.  
 
-As can be confirmed visually by glancing at the plots throughout this document, words such as "business" and "forecast" in the blogs appeared nearly as often as the word "engineering" on in the catalog sites we searched. The search term "deep learning" was found in blogs about as frequently as "advances" or "advance" in catalogs and "experience" and "science" in job listings. As one would expect, "experience" topped the list of most frequent words in job sites, while "engineering" topped the catalog frequency list. It is expected that "business" would be among the most frequent words found in blogs.  
+As one would expect, "experience" topped the list of most frequent words in job sites, while "engineering" topped the catalog frequency list.  
 
 How do the word frequencies of institution course catalog sites and job sites compare?  
 
@@ -1882,8 +1811,20 @@ theme(legend.position="none",panel.background = element_blank())+
 
 ```  
 
-According to our results, analytical and/or mathematic ability, technical fluency, creativity, and experience seem to be qualities and skills prized in data scientists. "Analysis", "applied", "calculus", and "count", common to job sites and course catalogs, imply an emphasis on math and logic. "Building", "computer", and "engineering" indicate the importance of being fluent in the creation and application of data analysis tools. "Design" and "experience" indicate the need for creativity and persistence, respectively. Combining these concepts with terms found in blogs, we can say that the application of these skills to "forecast" events or trends in "business" is invaluable.  
+
+<b>According to our results, analytical and/or mathematic ability, technical fluency, creativity, and experience seem to be qualities and skills prized in data scientists. "Analysis", "applied", "calculus", and "count", common to job sites and course catalogs, imply an emphasis on math and logic. "Building", "computer", and "engineering" indicate the importance of being fluent in the creation and application of data analysis tools. "Design" and "experience" indicate the need for creativity and persistence, respectively.  
+
 
 "Engineering" dominates the course catalog word list, while "experience" dominates job listings, which indicates that a necessary quality--and possible barrier--for data scientists is experience. Job listings we scanned mentioned "analysis" and "computer" most frequently after "experience", followed by "engineering", while course catalogs mentioned "analysis" and "computer" nearly equally and slightly less frequently than "applied". This supports recent trends in job growth; jobs requiring data analysis skills are abundant. The prevalence of the term "engineering" in course catalogs suggests a possible emphasis on data systems design rather than data analysis or data science.  
+
+
+Ultimately, the skills of a data scientist will vary depending on the specific companies/academic paths/subfields that the data scientist chooses to pursue. Perhaps, there is no "perfect" data scientist. Though, across all of the sources that we scraped, there are a few general qualities that all data scientists must have in order to be successful. Data scientists should have a fundamental understanding of the technical and theoretical aspects of gathering, manipulating, and analyzing data. This encompasses things like understanding database infrastructure, being well-versed in statistical analysis, and employing the most appropriate machine learning methods to turn data into tangible outcomes. Data scientists should also have a student's mindset. This includes skills like adapting to new technologies and methods, predicting future outcomes and trends, and using scientific methods to discover new insights.  
+
+
+At the most basic level, the most important skill any data scientist can possess is to the ability to communicate and facilitate the public's understanding in the interests of knowledge and growth.</b>   
+
+
+
+
 
 
